@@ -214,7 +214,7 @@ Preencha todas as variáveis:
 
 ```env
 # Domínio (sem https://)
-DOMAIN=seudominio.com.br
+DOMAIN=leaf-parfum.cherihub.cloud
 
 # PostgreSQL
 DB_PASSWORD=senha_segura_gerada          # use: openssl rand -base64 32
@@ -235,8 +235,8 @@ ABACATEPAY_API_KEY=sk_live_sua_chave
 ABACATEPAY_WEBHOOK_SECRET=whsec_seu_secret
 
 # URLs
-FRONTEND_URL=https://seudominio.com.br
-NEXT_PUBLIC_API_URL=https://seudominio.com.br
+FRONTEND_URL=https://leaf-parfum.cherihub.cloud
+NEXT_PUBLIC_API_URL=https://leaf-parfum.cherihub.cloud
 
 # ASP.NET
 ASPNETCORE_ENVIRONMENT=Production
@@ -444,7 +444,7 @@ leaf-ecommerce/
 | `Jwt__Audience` | Audiência do JWT | `leaf-ecommerce` |
 | `AbacatePay__ApiKey` | API key da AbacatePay | `sk_live_...` |
 | `AbacatePay__WebhookSecret` | Secret para validar webhooks | `whsec_...` |
-| `App__FrontendUrl` | URL do frontend (para CORS) | `https://seudominio.com.br` |
+| `App__FrontendUrl` | URL do frontend (para CORS) | `https://leaf-parfum.cherihub.cloud` |
 | `ASPNETCORE_ENVIRONMENT` | Ambiente do ASP.NET | `Production` |
 | `ASPNETCORE_URLS` | URLs de escuta | `http://+:5000` |
 
@@ -452,4 +452,4 @@ leaf-ecommerce/
 
 | Variável | Descrição | Exemplo |
 |----------|-----------|---------|
-| `NEXT_PUBLIC_API_URL` | URL pública do backend | `https://seudominio.com.br` |
+| `NEXT_PUBLIC_API_URL` | URL pública do backend | `https://leaf-parfum.cherihub.cloud` |
