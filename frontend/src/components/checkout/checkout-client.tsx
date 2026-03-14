@@ -303,28 +303,33 @@ export function CheckoutClient() {
                   Cupom de desconto
                 </label>
                 {couponApplied ? (
-                  <div className="flex items-center justify-between bg-success/10 rounded-lg px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <Tag className="w-4 h-4 text-success" />
-                      <span className="text-sm font-medium text-success">
-                        {couponApplied.code}
-                        {" — "}
-                        {couponApplied.discountKind === "PERCENTAGE"
-                          ? `${couponApplied.discount / 100}% off`
-                          : `−${formatCurrency(couponApplied.discount)}`}
-                      </span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between bg-success/10 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-4 h-4 text-success" />
+                        <span className="text-sm font-medium text-success">
+                          {couponApplied.code}
+                          {" — "}
+                          {couponApplied.discountKind === "PERCENTAGE"
+                            ? `${couponApplied.discount / 100}% off`
+                            : `−${formatCurrency(couponApplied.discount)}`}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCouponApplied(null);
+                          setCouponCode("");
+                          setCouponError(null);
+                        }}
+                        className="text-xs text-text-muted hover:text-error transition-colors"
+                      >
+                        Remover
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCouponApplied(null);
-                        setCouponCode("");
-                        setCouponError(null);
-                      }}
-                      className="text-xs text-text-muted hover:text-error transition-colors"
-                    >
-                      Remover
-                    </button>
+                    <p className="text-xs text-text-secondary">
+                      Insira o código <span className="font-semibold">{couponApplied.code}</span> na página de pagamento para aplicar o desconto.
+                    </p>
                   </div>
                 ) : (
                   <div>
@@ -376,16 +381,6 @@ export function CheckoutClient() {
                   {formatCurrency(totalCents())}
                 </span>
               </div>
-              {couponApplied && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-success">Desconto ({couponApplied.code})</span>
-                  <span className="text-success font-medium">
-                    {couponApplied.discountKind === "PERCENTAGE"
-                      ? `−${formatCurrency(Math.round(totalCents() * couponApplied.discount / 10000))}`
-                      : `−${formatCurrency(couponApplied.discount)}`}
-                  </span>
-                </div>
-              )}
               <div className="flex justify-between text-sm">
                 <span className="text-text-secondary">Frete</span>
                 <span className="text-success font-medium">Grátis</span>
@@ -393,13 +388,7 @@ export function CheckoutClient() {
               <div className="flex justify-between pt-2 border-t border-border">
                 <span className="font-semibold text-text-main">Total</span>
                 <span className="font-bold text-lg text-text-main">
-                  {formatCurrency(
-                    couponApplied
-                      ? couponApplied.discountKind === "PERCENTAGE"
-                        ? totalCents() - Math.round(totalCents() * couponApplied.discount / 10000)
-                        : Math.max(0, totalCents() - couponApplied.discount)
-                      : totalCents()
-                  )}
+                  {formatCurrency(totalCents())}
                 </span>
               </div>
             </div>
