@@ -268,8 +268,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// === Seed data (desenvolvimento) ===
-if (app.Environment.IsDevelopment())
+// === Seed data ===
 {
     using var scope = app.Services.CreateScope();
     var seeder = scope.ServiceProvider.GetRequiredService<SeedDataService>();
