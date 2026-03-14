@@ -229,6 +229,13 @@ RecurringJob.AddOrUpdate<ReleaseExpiredReservationsJob>(
     job => job.ExecuteAsync(CancellationToken.None),
     Cron.MinuteInterval(5));
 
+// === Apply migrations ===
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+}
+
 // === Seed roles ===
 using (var scope = app.Services.CreateScope())
 {
