@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-REPO_URL="https://github.com/YOUR_USERNAME/leaf-ecommerce.git"
+REPO_URL="https://github.com/cheri-hub/leaf-ecommerce.git"
 APP_DIR="/opt/leaf-ecommerce"
 BRANCH="main"
 

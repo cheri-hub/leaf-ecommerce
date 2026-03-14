@@ -155,242 +155,230 @@ npm run build
 
 ---
 
-## Deploy
+## Deploy na VPS
 
-### Opção 1: Docker Compose (recomendado)
+O projeto usa imagens Docker pré-construídas pelo GitHub Actions e publicadas no **GitHub Container Registry (GHCR)**. O deploy na VPS é feito com o script `deploy.sh` incluso no repositório.
 
-Crie o arquivo `docker-compose.yml` na raiz do projeto:
+### Pré-requisitos
+
+| Requisito | Mínimo |
+|-----------|--------|
+| VPS Linux | Ubuntu 22.04+ / Debian 12+ |
+| RAM | 2 GB |
+| Disco | 20 GB |
+| Domínio | Apontando para o IP da VPS (registro A) |
+| Conta GitHub | Com acesso ao repositório (para pull das imagens GHCR) |
+
+### Arquitetura de produção
+
+```
+Internet ──► Nginx (:80/:443) ──┬── Frontend (ghcr.io/.../frontend:latest)
+                                 └── Backend  (ghcr.io/.../backend:latest)
+                                      ├── PostgreSQL 16
+                                      └── Redis 7
+Certbot ── renovação automática de SSL a cada 12h
+```
+
+Todas as imagens são construídas automaticamente pelo GitHub Actions a cada push na `main` e publicadas em:
+- `ghcr.io/cheri-hub/leaf-ecommerce/frontend:latest`
+- `ghcr.io/cheri-hub/leaf-ecommerce/backend:latest`
+
+---
+
+### Passo 1 — Setup inicial
+
+Acesse a VPS via SSH e execute:
+
+```bash
+# Baixar o script de deploy
+curl -fsSL https://raw.githubusercontent.com/cheri-hub/leaf-ecommerce/main/deploy.sh -o deploy.sh
+chmod +x deploy.sh
+
+# Executar setup (instala Docker, clona o repo)
+sudo ./deploy.sh setup
+```
+
+O setup instala Docker, Docker Compose, git e clona o repositório em `/opt/leaf-ecommerce`.
+
+---
+
+### Passo 2 — Configurar variáveis de ambiente
+
+```bash
+cd /opt/leaf-ecommerce
+cp .env.example .env
+nano .env
+```
+
+Preencha todas as variáveis:
+
+```env
+# Domínio (sem https://)
+DOMAIN=seudominio.com.br
+
+# PostgreSQL
+DB_PASSWORD=senha_segura_gerada          # use: openssl rand -base64 32
+POSTGRES_DB=ecommerce
+POSTGRES_USER=app
+
+# Connection strings (substitua a senha)
+CONNECTION_STRING=Host=postgres;Database=ecommerce;Username=app;Password=senha_segura_gerada
+REDIS_CONNECTION=redis:6379
+
+# JWT (mín. 32 caracteres)
+JWT_SECRET=chave_jwt_segura_gerada       # use: openssl rand -base64 48
+JWT_ISSUER=leaf-ecommerce
+JWT_AUDIENCE=leaf-ecommerce
+
+# AbacatePay (obtenha no painel da AbacatePay)
+ABACATEPAY_API_KEY=sk_live_sua_chave
+ABACATEPAY_WEBHOOK_SECRET=whsec_seu_secret
+
+# URLs
+FRONTEND_URL=https://seudominio.com.br
+NEXT_PUBLIC_API_URL=https://seudominio.com.br
+
+# ASP.NET
+ASPNETCORE_ENVIRONMENT=Production
+ASPNETCORE_URLS=http://+:5000
+```
+
+---
+
+### Passo 3 — Login no GitHub Container Registry
+
+As imagens Docker são privadas no GHCR. Autentique-se com um Personal Access Token (PAT) do GitHub com permissão `read:packages`:
+
+```bash
+# Gere um PAT em: GitHub → Settings → Developer settings → Personal access tokens
+docker login ghcr.io -u SEU_USUARIO_GITHUB
+# Cole o PAT quando solicitado
+```
+
+---
+
+### Passo 4 — Certificado SSL
+
+```bash
+sudo ./deploy.sh ssl
+```
+
+Isso obtém automaticamente um certificado Let's Encrypt para o domínio configurado no `.env`. O Certbot renova automaticamente a cada 12 horas.
+
+> **Importante:** O domínio já deve estar apontando para o IP da VPS antes deste passo.
+
+---
+
+### Passo 5 — Deploy
+
+```bash
+sudo ./deploy.sh deploy
+```
+
+Isso puxa as imagens mais recentes do GHCR e sobe todos os containers (frontend, backend, PostgreSQL, Redis, Nginx, Certbot).
+
+---
+
+### Comandos do deploy.sh
+
+| Comando | Descrição |
+|---------|-----------|
+| `./deploy.sh setup` | Instalação inicial (Docker, git, clone do repo) |
+| `./deploy.sh ssl` | Obter certificado SSL via Let's Encrypt |
+| `./deploy.sh deploy` | Deploy completo (pull imagens + up containers) |
+| `./deploy.sh update` | Atualização rápida (pull + restart) |
+| `./deploy.sh logs` | Ver logs de todos os containers |
+| `./deploy.sh logs backend` | Ver logs de um container específico |
+| `./deploy.sh status` | Verificar status dos serviços + health check |
+| `./deploy.sh backup` | Backup do banco PostgreSQL em `/opt/leaf-ecommerce/backups/` |
+| `./deploy.sh restart` | Reiniciar todos os containers |
+
+---
+
+### Fluxo de atualização
+
+Após um push para `main`:
+
+1. O GitHub Actions builda e publica novas imagens no GHCR automaticamente
+2. Na VPS, execute:
+
+```bash
+cd /opt/leaf-ecommerce
+sudo ./deploy.sh update
+```
+
+Isso puxa as imagens atualizadas e reinicia os containers sem downtime nos serviços de dados (PostgreSQL e Redis mantêm os volumes).
+
+---
+
+### docker-compose.yml (produção)
+
+O `docker-compose.yml` do repositório já está configurado para puxar imagens do GHCR:
 
 ```yaml
 services:
   frontend:
-    build: ./frontend
-    ports:
-      - "3003:3003"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://backend:5000
-    depends_on:
-      - backend
-    restart: unless-stopped
+    image: ghcr.io/cheri-hub/leaf-ecommerce/frontend:latest
 
   backend:
-    build: ./backend
-    ports:
-      - "5000:5000"
-    depends_on:
-      - postgres
-      - redis
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:5000
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=ecommerce;Username=app;Password=${DB_PASSWORD}
-      - ConnectionStrings__Redis=redis:6379
-      - Jwt__Secret=${JWT_SECRET}
-      - Jwt__Issuer=leaf-ecommerce
-      - Jwt__Audience=leaf-ecommerce
-      - AbacatePay__ApiKey=${ABACATEPAY_API_KEY}
-      - AbacatePay__WebhookSecret=${ABACATEPAY_WEBHOOK_SECRET}
-      - App__FrontendUrl=${FRONTEND_URL}
-    restart: unless-stopped
+    image: ghcr.io/cheri-hub/leaf-ecommerce/backend:latest
 
   postgres:
     image: postgres:16-alpine
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: ecommerce
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
-    volumes:
-      - redisdata:/data
-    restart: unless-stopped
 
   nginx:
     image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./certbot:/etc/letsencrypt
-    depends_on:
-      - frontend
-      - backend
-    restart: unless-stopped
+    # Monta nginx.conf e certificados SSL
 
-volumes:
-  pgdata:
-  redisdata:
+  certbot:
+    image: certbot/certbot
+    # Renovação automática de SSL
 ```
 
-Crie o arquivo `.env` na raiz (nunca commite este arquivo):
+Nenhum build local é necessário — todas as imagens são pré-construídas pelo CI/CD.
 
-```env
-DB_PASSWORD=sua_senha_segura_aqui
-JWT_SECRET=uma-chave-secreta-com-pelo-menos-32-caracteres
-ABACATEPAY_API_KEY=sk_live_sua_chave
-ABACATEPAY_WEBHOOK_SECRET=whsec_seu_secret
-FRONTEND_URL=https://seudominio.com.br
-```
+---
 
-Crie o arquivo `nginx/nginx.conf`:
+### CI/CD — GitHub Actions
 
-```nginx
-events {
-    worker_connections 1024;
-}
+O workflow `.github/workflows/build-and-push.yml` é executado automaticamente:
 
-http {
-    upstream frontend {
-        server frontend:3003;
-    }
+- **Em PRs para `main`:** roda testes do backend (57 testes)
+- **Em push para `main`:** builda e publica imagens Docker no GHCR
 
-    upstream backend {
-        server backend:5000;
-    }
+As imagens recebem duas tags:
+- `latest` — sempre a versão mais recente
+- SHA do commit — para rollback se necessário
 
-    server {
-        listen 80;
-        server_name seudominio.com.br;
+---
 
-        # Redirecionar HTTP para HTTPS
-        return 301 https://$host$request_uri;
-    }
-
-    server {
-        listen 443 ssl;
-        server_name seudominio.com.br;
-
-        ssl_certificate /etc/letsencrypt/live/seudominio.com.br/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/seudominio.com.br/privkey.pem;
-
-        # API backend
-        location /api/ {
-            proxy_pass http://backend;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-
-        # Health check
-        location /health {
-            proxy_pass http://backend;
-        }
-
-        # Hangfire dashboard
-        location /hangfire {
-            proxy_pass http://backend;
-        }
-
-        # Frontend (tudo que não é API)
-        location / {
-            proxy_pass http://frontend;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-    }
-}
-```
-
-#### Subir tudo
+### Troubleshooting
 
 ```bash
-# Build e start de todos os containers
-docker compose up -d --build
+# Ver logs em tempo real
+sudo ./deploy.sh logs
 
-# Aplicar migrations no banco dentro do container
-docker compose exec backend dotnet ef database update
+# Verificar se os containers estão rodando
+sudo ./deploy.sh status
 
-# Ver logs
-docker compose logs -f
+# Reiniciar tudo
+sudo ./deploy.sh restart
 
-# Parar tudo
-docker compose down
+# Verificar saúde do backend
+curl -f http://localhost:5000/health
+
+# Ver logs de um serviço específico
+docker compose logs -f backend
+
+# Acessar o banco diretamente
+docker compose exec postgres psql -U app ecommerce
+
+# Restaurar um backup
+cat backups/backup_20260314_120000.sql | docker compose exec -T postgres psql -U app ecommerce
 ```
-
-### Opção 2: Deploy manual na VPS
-
-```bash
-# 1. No servidor, instalar Docker e Docker Compose
-
-# 2. Clonar o repositório
-git clone https://github.com/seu-usuario/leaf-ecommerce.git
-cd leaf-ecommerce
-
-# 3. Criar arquivo .env com as variáveis de produção (ver acima)
-
-# 4. Configurar HTTPS com Certbot
-sudo apt install certbot
-sudo certbot certonly --standalone -d seudominio.com.br
-# Os certificados ficam em /etc/letsencrypt/live/seudominio.com.br/
-
-# 5. Criar o nginx.conf apontando para o domínio correto
-
-# 6. Subir
-docker compose up -d --build
-```
-
-### CI/CD com GitHub Actions
-
-Crie `.github/workflows/deploy.yml`:
-
-```yaml
-name: Deploy
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Backend tests
-        run: dotnet test
-        working-directory: backend
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Frontend build
-        run: |
-          npm ci
-          npm run build
-        working-directory: frontend
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            cd /opt/leaf-ecommerce
-            git pull origin main
-            docker compose up -d --build
-```
-
-Configure os secrets no GitHub: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`.
 
 ---
 
