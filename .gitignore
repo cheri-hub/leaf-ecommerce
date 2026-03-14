@@ -1,0 +1,46 @@
+# Node
+node_modules/
+.next/
+out/
+frontend/.env.local
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Docker volumes
+pgdata/
+redisdata/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Build outputs
+**/bin/Debug/
+**/bin/Release/
+**/obj/
+
+# Backups
+backups/
+
+# Build artifacts
+*-output.txt
+PENDENCIAS.md

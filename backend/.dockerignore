@@ -1,0 +1,20 @@
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Tests results
+**/TestResults/
+
+# Misc
+**/.git
+**/.gitignore
+**/README.md
+**/Dockerfile
+**/.dockerignore

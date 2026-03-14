@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+:root {
+  --bg-main: #F3F4F1;
+  --surface-card: #FAF3E1;
+  --primary: #244E2B;
+  --primary-hover: #1A3B20;
+  --primary-light: #2F6637;
+  --secondary: #D6DBBE;
+  --secondary-hover: #C5CCA8;
+  --text-main: #182B1C;
+  --text-secondary: #5A6B5E;
+  --text-muted: #8A9A8E;
+  --border: #E2E4DF;
+  --border-strong: #C8CBC4;
+  --success: #2E7D32;
+  --warning: #F59E0B;
+  --error: #DC2626;
+  --overlay: rgba(24, 43, 28, 0.5);
+}
+
+@theme inline {
+  --color-bg-main: var(--bg-main);
+  --color-surface-card: var(--surface-card);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-light: var(--primary-light);
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-text-main: var(--text-main);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-overlay: var(--overlay);
+
+  --font-heading: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-dropdown: 0 4px 16px rgba(0,0,0,0.12);
+  --shadow-drawer: -4px 0 24px rgba(0,0,0,0.15);
+}
+
+body {
+  background: var(--bg-main);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-heading);
+}
+
+/* Skeleton shimmer animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, var(--border) 25%, var(--bg-main) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
