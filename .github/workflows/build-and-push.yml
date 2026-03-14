@@ -103,4 +103,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            NEXT_PUBLIC_API_URL=https://placeholder.com
+            NEXT_PUBLIC_API_URL=https://leaf-parfum.cherihub.cloud
